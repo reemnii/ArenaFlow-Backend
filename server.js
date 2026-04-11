@@ -38,6 +38,11 @@ app.get("/api/health", (req, res) => {
 
 // routes
 app.use("/api/users", require("./routes/UserRoutes"));
+app.use("/api/teams", require("./routes/teamRoutes"));
+app.use("/api/players", require("./routes/playerRoutes"));
+app.use("/api/tournaments", require("./routes/tournamentRoutes"));
+app.use("/api/matches", require("./routes/matchRoutes"));
+app.use("/api/scores", require("./routes/scoreRoutes"));
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
