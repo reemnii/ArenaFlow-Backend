@@ -9,8 +9,13 @@ const tournamentSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["Indoor", "Beach", "Snow"],
+      enum: ["Indoor", "Beach", "Grass", "Snow"],
       required: true,
+    },
+    venue: {
+      type: String,
+      default: "",
+      trim: true,
     },
     location: {
       type: String,
@@ -23,7 +28,7 @@ const tournamentSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["upcoming", "ongoing", "completed"],
+      enum: ["draft", "published", "upcoming", "ongoing", "completed"],
       default: "upcoming",
     },
     registrationStatus: {
@@ -44,7 +49,58 @@ const tournamentSchema = new mongoose.Schema(
       required: true,
       min: 2,
     },
+    format: {
+      type: String,
+      default: "Single Elimination",
+      trim: true,
+    },
+    volleyballType: {
+      type: String,
+      enum: ["Indoor", "Beach", "Grass", "Snow"],
+      default: "Indoor",
+    },
+    startDate: {
+      type: Date,
+    },
+    endDate: {
+      type: Date,
+    },
+    skillLevel: {
+      type: String,
+      default: "Open",
+      trim: true,
+    },
+    genderCategory: {
+      type: String,
+      default: "Men",
+      trim: true,
+    },
+    visibility: {
+      type: String,
+      enum: ["Public", "Private"],
+      default: "Public",
+    },
+    bestOf: {
+      type: String,
+      default: "3 Sets",
+      trim: true,
+    },
+    pointsPerSet: {
+      type: Number,
+      default: 25,
+      min: 1,
+    },
+    finalSetPoints: {
+      type: Number,
+      default: 15,
+      min: 1,
+    },
     description: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    additionalRules: {
       type: String,
       default: "",
       trim: true,
@@ -58,7 +114,6 @@ const tournamentSchema = new mongoose.Schema(
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
     },
   },
   { timestamps: true }
