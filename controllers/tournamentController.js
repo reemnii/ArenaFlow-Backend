@@ -17,6 +17,22 @@ const createError = (message, statusCode) => {
   return error;
 };
 
+const canManageTournament = (user, tournament) => {
+  if (!user || !tournament) {
+    return false;
+  }
+
+  if (user.role === "admin") {
+    return true;
+  }
+
+  if (!tournament.createdBy) {
+    return false;
+  }
+
+  return String(tournament.createdBy) === String(user._id);
+};
+
 const normalizeStatus = (status) => {
   if (!status) {
     return undefined;
@@ -173,6 +189,18 @@ const update = async (req, res, next) => {
     }
 
     const payload = normalizeTournamentPayload(req.body, req.user);
+    const existingTournament = await Tournament.findById(req.params.id);
+
+    if (!existingTournament) {
+      return next(createError("Tournament not found", 404));
+    }
+
+    if (!canManageTournament(req.user, existingTournament)) {
+      return next(createError("Not authorized to update this tournament", 403));
+    }
+
+    delete payload.createdBy;
+
     const tournament = await applyPopulate(
       Tournament.findByIdAndUpdate(req.params.id, payload, {
         new: true,
@@ -197,11 +225,17 @@ const remove = async (req, res, next) => {
       return next(createError("Invalid tournament id", 400));
     }
 
-    const tournament = await Tournament.findByIdAndDelete(req.params.id);
+    const tournament = await Tournament.findById(req.params.id);
 
     if (!tournament) {
       return next(createError("Tournament not found", 404));
     }
+
+    if (!canManageTournament(req.user, tournament)) {
+      return next(createError("Not authorized to delete this tournament", 403));
+    }
+
+    await tournament.deleteOne();
 
     res.json({ message: "Tournament deleted" });
   } catch (error) {
