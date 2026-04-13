@@ -7,39 +7,42 @@ const createCrudController = (Model, populateFields = []) => {
     return query;
   };
 
-  const getAll = async (req, res) => {
+  const getAll = async (req, res, next) => {
     try {
       const items = await applyPopulate(Model.find());
       res.json(items);
     } catch (error) {
-      res.status(500).json({ message: error.message });
+      next(error);
     }
   };
 
-  const getById = async (req, res) => {
+  const getById = async (req, res, next) => {
     try {
       const item = await applyPopulate(Model.findById(req.params.id));
 
       if (!item) {
-        return res.status(404).json({ message: "Item not found" });
+        const error = new Error("Item not found");
+        error.statusCode = 404;
+        return next(error);
       }
 
       res.json(item);
     } catch (error) {
-      res.status(500).json({ message: error.message });
+      next(error);
     }
   };
 
-  const create = async (req, res) => {
+  const create = async (req, res, next) => {
     try {
       const item = await Model.create(req.body);
       res.status(201).json(item);
     } catch (error) {
-      res.status(400).json({ message: error.message });
+      error.statusCode = 400;
+      next(error);
     }
   };
 
-  const update = async (req, res) => {
+  const update = async (req, res, next) => {
     try {
       const item = await Model.findByIdAndUpdate(req.params.id, req.body, {
         new: true,
@@ -47,26 +50,31 @@ const createCrudController = (Model, populateFields = []) => {
       });
 
       if (!item) {
-        return res.status(404).json({ message: "Item not found" });
+        const error = new Error("Item not found");
+        error.statusCode = 404;
+        return next(error);
       }
 
       res.json(item);
     } catch (error) {
-      res.status(400).json({ message: error.message });
+      error.statusCode = 400;
+      next(error);
     }
   };
 
-  const remove = async (req, res) => {
+  const remove = async (req, res, next) => {
     try {
       const item = await Model.findByIdAndDelete(req.params.id);
 
       if (!item) {
-        return res.status(404).json({ message: "Item not found" });
+        const error = new Error("Item not found");
+        error.statusCode = 404;
+        return next(error);
       }
 
       res.json({ message: "Item deleted" });
     } catch (error) {
-      res.status(500).json({ message: error.message });
+      next(error);
     }
   };
 

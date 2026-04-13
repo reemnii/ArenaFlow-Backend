@@ -1,6 +1,7 @@
 const express = require("express");
 require("./config/env");
 const connectDB = require("./config/db");
+const { notFound, errorHandler } = require("./middleware/errorMiddleware");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -43,6 +44,9 @@ app.use("/api/players", require("./routes/playerRoutes"));
 app.use("/api/tournaments", require("./routes/tournamentRoutes"));
 app.use("/api/matches", require("./routes/matchRoutes"));
 app.use("/api/scores", require("./routes/scoreRoutes"));
+
+app.use(notFound);
+app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
