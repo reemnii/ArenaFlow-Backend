@@ -1,6 +1,5 @@
 const express = require("express");
 require("./config/env");
-console.log("JWT_SECRET from server:", process.env.JWT_SECRET);
 const connectDB = require("./config/db");
 const { notFound, errorHandler } = require("./middleware/errorMiddleware");
 
@@ -47,9 +46,11 @@ app.use("/api/tournaments", require("./routes/tournamentRoutes"));
 app.use("/api/matches", require("./routes/matchRoutes"));
 app.use("/api/scores", require("./routes/scoreRoutes"));
 
+
 app.use(notFound);
 app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`Base URL: http://localhost:${PORT}`);
 });

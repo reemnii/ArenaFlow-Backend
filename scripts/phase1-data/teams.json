@@ -1,0 +1,50 @@
+[
+  {
+    "phase1Id": 1,
+    "name": "Athens Aces Men",
+    "gender": "male",
+    "coachName": "Nikos Papadopoulos",
+    "city": "Athens",
+    "logo": ""
+  },
+  {
+    "phase1Id": 2,
+    "name": "Thessaloniki Titans Men",
+    "gender": "male",
+    "coachName": "Dimitris Nikolaou",
+    "city": "Thessaloniki",
+    "logo": ""
+  },
+  {
+    "phase1Id": 3,
+    "name": "Volleyball Vipers Men",
+    "gender": "male",
+    "coachName": "Giorgos Antoniou",
+    "city": "Beirut",
+    "logo": ""
+  },
+  {
+    "phase1Id": 4,
+    "name": "Athens Aces Women",
+    "gender": "female",
+    "coachName": "Eleni Georgiou",
+    "city": "Athens",
+    "logo": ""
+  },
+  {
+    "phase1Id": 5,
+    "name": "Thessaloniki Titans Women",
+    "gender": "female",
+    "coachName": "Maria Konstantinou",
+    "city": "Thessaloniki",
+    "logo": ""
+  },
+  {
+    "phase1Id": 6,
+    "name": "Volleyball Vipers Women",
+    "gender": "female",
+    "coachName": "Christina Haddad",
+    "city": "Beirut",
+    "logo": ""
+  }
+]
