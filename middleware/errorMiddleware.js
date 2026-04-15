@@ -15,9 +15,25 @@ const errorHandler = (err, req, res, next) => {
     statusCode = 400;
   }
 
-  res.status(statusCode).json({
+  const response = {
     message: err.message || "Server error",
-  });
+  };
+
+  if (err.errors) {
+    response.errors = Array.isArray(err.errors)
+      ? err.errors
+      : Object.values(err.errors).map((error) => error.message);
+  }
+
+  if (err.code === 11000) {
+    statusCode = 400;
+    response.message = "Duplicate value";
+    response.errors = Object.keys(err.keyValue || {}).map(
+      (field) => `${field} already exists.`
+    );
+  }
+
+  res.status(statusCode).json(response);
 };
 
 module.exports = {
