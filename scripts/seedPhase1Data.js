@@ -7,6 +7,8 @@ require("../config/env");
 const Team = require("../models/Team");
 const Tournament = require("../models/Tournament");
 const User = require("../models/User");
+const Match = require("../models/Match");
+const Score = require("../models/Score");
 
 const teams = require(path.join(__dirname, "phase1-data", "teams.json"));
 const tournaments = require(path.join(__dirname, "phase1-data", "tournaments.json"));
@@ -86,13 +88,15 @@ const seedTeams = async (createdBy) => {
 };
 
 const seedTournaments = async (createdBy, teamIdMap) => {
+  const seededTournaments = [];
+
   for (const tournament of tournaments) {
     const date = new Date(tournament.date);
     const teamObjectIds = (tournament.teamIds || [])
       .map((teamId) => teamIdMap.get(teamId))
       .filter(Boolean);
 
-    await Tournament.findOneAndUpdate(
+    const savedTournament = await Tournament.findOneAndUpdate(
       { name: tournament.name },
       {
         name: tournament.name,
@@ -128,6 +132,119 @@ const seedTournaments = async (createdBy, teamIdMap) => {
         upsert: true,
       }
     );
+
+    seededTournaments.push(savedTournament);
+  }
+
+  return seededTournaments;
+};
+
+const buildFinishedMatchData = (index) => {
+  const presets = [
+    {
+      sets: [
+        { teamA: 25, teamB: 21 },
+        { teamA: 25, teamB: 19 },
+        { teamA: 18, teamB: 25 },
+      ],
+    },
+    {
+      sets: [
+        { teamA: 22, teamB: 25 },
+        { teamA: 25, teamB: 23 },
+        { teamA: 25, teamB: 20 },
+      ],
+    },
+    {
+      sets: [
+        { teamA: 25, teamB: 17 },
+        { teamA: 23, teamB: 25 },
+        { teamA: 25, teamB: 22 },
+      ],
+    },
+  ];
+
+  return presets[index % presets.length];
+};
+
+const seedMatchesAndScores = async (seedUserId, seededTournaments) => {
+  for (const [index, tournament] of seededTournaments.entries()) {
+    if (!Array.isArray(tournament.teams) || tournament.teams.length < 2) {
+      continue;
+    }
+
+    const [teamA, teamB] = tournament.teams;
+    const matchDate = tournament.startDate || tournament.date;
+    const normalizedStatus = String(tournament.status || "").toLowerCase();
+
+    let matchStatus = "scheduled";
+    let winner = null;
+    let scorePayload = null;
+
+    if (normalizedStatus === "completed") {
+      matchStatus = "finished";
+      winner = teamA;
+      const finishedMatch = buildFinishedMatchData(index);
+
+      scorePayload = {
+        teamAScore: finishedMatch.sets.filter((set) => set.teamA > set.teamB).length,
+        teamBScore: finishedMatch.sets.filter((set) => set.teamB > set.teamA).length,
+        sets: finishedMatch.sets,
+        updatedBy: seedUserId,
+      };
+    } else if (normalizedStatus === "ongoing") {
+      matchStatus = "finished";
+      winner = teamB;
+      scorePayload = {
+        teamAScore: 1,
+        teamBScore: 2,
+        sets: [
+          { teamA: 21, teamB: 25 },
+          { teamA: 25, teamB: 23 },
+          { teamA: 19, teamB: 25 },
+        ],
+        updatedBy: seedUserId,
+      };
+    }
+
+    const savedMatch = await Match.findOneAndUpdate(
+      {
+        tournament: tournament._id,
+        teamA,
+        teamB,
+        matchDate,
+      },
+      {
+        tournament: tournament._id,
+        teamA,
+        teamB,
+        matchDate,
+        status: matchStatus,
+        winner,
+      },
+      {
+        returnDocument: "after",
+        runValidators: true,
+        setDefaultsOnInsert: true,
+        upsert: true,
+      }
+    );
+
+    if (scorePayload) {
+      await Score.findOneAndUpdate(
+        { match: savedMatch._id },
+        {
+          match: savedMatch._id,
+          ...scorePayload,
+        },
+        {
+          returnDocument: "after",
+          runValidators: true,
+          setDefaultsOnInsert: true,
+          upsert: true,
+        }
+      );
+    }
   }
 };
 
@@ -136,9 +253,11 @@ const run = async () => {
 
   const seedUser = await getSeedUser();
   const teamIdMap = await seedTeams(seedUser._id);
-  await seedTournaments(seedUser._id, teamIdMap);
+  const seededTournaments = await seedTournaments(seedUser._id, teamIdMap);
+  await seedMatchesAndScores(seedUser._id, seededTournaments);
 
   console.log(`Seeded ${teams.length} teams and ${tournaments.length} tournaments.`);
+  console.log("Seeded match and score records for dashboard statistics.");
   console.log(`Seed owner: ${seedUser.email}`);
 };
 
