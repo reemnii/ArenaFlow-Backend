@@ -5,14 +5,23 @@ const { notFound, errorHandler } = require("./middleware/errorMiddleware");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || "*";
+const allowedOrigins = (process.env.CLIENT_ORIGIN || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
 // connect database
 connectDB();
 
 // middleware
 app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", CLIENT_ORIGIN);
+  const requestOrigin = req.headers.origin;
+
+  if (!requestOrigin || allowedOrigins.includes(requestOrigin)) {
+    res.header("Access-Control-Allow-Origin", requestOrigin || "*");
+  }
+
+  res.header("Vary", "Origin");
   res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
   res.header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
 
