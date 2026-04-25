@@ -8,45 +8,37 @@ const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // REGISTER
 exports.register = async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { username, email, password, role } = req.body;
 
     const trimmedUsername = typeof username === "string" ? username.trim() : "";
-    const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
+    const normalizedEmail =
+      typeof email === "string" ? email.trim().toLowerCase() : "";
     const plainPassword = typeof password === "string" ? password : "";
 
     if (!trimmedUsername || !normalizedEmail || !plainPassword) {
-      return res.status(400).json({ message: "Username, email, and password are required" });
+      return res
+        .status(400)
+        .json({ message: "Username, email, and password are required" });
     }
 
     if (trimmedUsername.length < 3 || trimmedUsername.length > 30) {
-      return res.status(400).json({ message: "Username must be between 3 and 30 characters" });
-    }
-
-    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailPattern.test(normalizedEmail)) {
-      return res.status(400).json({ message: "Please enter a valid email address" });
-    }
-
-    if (plainPassword.length < 6) {
-      return res.status(400).json({ message: "Password must be at least 6 characters" });
-    }
-
-    const trimmedUsername = String(username || "").trim();
-    const normalizedEmail = String(email || "").trim().toLowerCase();
-
-    if (!trimmedUsername || !normalizedEmail || !password) {
-      return res.status(400).json({ message: "Username, email, and password are required" });
+      return res
+        .status(400)
+        .json({ message: "Username must be between 3 and 30 characters" });
     }
 
     if (!emailPattern.test(normalizedEmail)) {
-      return res.status(400).json({ message: "Please provide a valid email address" });
+      return res
+        .status(400)
+        .json({ message: "Please enter a valid email address" });
     }
 
-    if (password.length < 8) {
-      return res.status(400).json({ message: "Password must be at least 8 characters" });
+    if (plainPassword.length < 8) {
+      return res
+        .status(400)
+        .json({ message: "Password must be at least 8 characters" });
     }
 
-    // check if email exists
     const [existingEmail, existingUsername] = await Promise.all([
       User.findOne({ email: normalizedEmail }),
       User.findOne({ username: new RegExp(`^${trimmedUsername}$`, "i") }),
@@ -60,7 +52,6 @@ exports.register = async (req, res) => {
       return res.status(400).json({ message: "Username already exists" });
     }
 
-    // hash password
     const hashedPassword = await bcrypt.hash(plainPassword, 10);
 
     const user = new User({
@@ -82,7 +73,6 @@ exports.register = async (req, res) => {
         avatar: user.avatar,
       },
     });
-
   } catch (error) {
     if (error.code === 11000 && error.keyPattern && error.keyPattern.email) {
       return res.status(400).json({ message: "Email already exists" });
@@ -90,13 +80,14 @@ exports.register = async (req, res) => {
 
     if (error.name === "ValidationError") {
       const messages = Object.values(error.errors).map((err) => err.message);
-      return res.status(400).json({ message: messages[0] || "Invalid registration data" });
+      return res
+        .status(400)
+        .json({ message: messages[0] || "Invalid registration data" });
     }
 
     res.status(500).json({ message: error.message });
   }
 };
-
 
 // LOGIN
 exports.login = async (req, res) => {
@@ -108,12 +99,18 @@ exports.login = async (req, res) => {
       .toLowerCase();
 
     if (!loginIdentifier || !password) {
-      return res.status(400).json({ message: "Email or username and password are required" });
+      return res
+        .status(400)
+        .json({ message: "Email or username and password are required" });
     }
 
     const user = await User.findOne({
-      $or: [{ email: loginIdentifier }, { username: new RegExp(`^${loginIdentifier}$`, "i") }],
+      $or: [
+        { email: loginIdentifier },
+        { username: new RegExp(`^${loginIdentifier}$`, "i") },
+      ],
     });
+
     if (!user) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
@@ -124,7 +121,7 @@ exports.login = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user._id, role: user.role }, // include role 👈
+      { id: user._id, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );
@@ -136,10 +133,9 @@ exports.login = async (req, res) => {
         username: user.username,
         email: user.email,
         role: user.role,
-        avatar: user.avatar
-      }
+        avatar: user.avatar,
+      },
     });
-
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
