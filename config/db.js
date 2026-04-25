@@ -1,17 +1,17 @@
-import mongoose from "mongoose";
-import dotenv from "dotenv";
+const mongoose = require("mongoose");
+const dotenv = require("dotenv");
 
 // Load environment variables
 dotenv.config({ path: "./config/.env" });
 
 const connectDB = async () => {
   try {
-    if (!process.env.MONGO_URI) {
-      throw new Error("MONGO_URI is not defined in .env");
-    }
+    const mongoURI =
+      process.env.MONGO_URI ||
+      "mongodb://127.0.0.1:27017/arenaflow";
 
-    const conn = await mongoose.connect(process.env.MONGO_URI, {
-      dbName: "arenaflow", // ensures correct DB
+    const conn = await mongoose.connect(mongoURI, {
+      dbName: "arenaflow",
     });
 
     console.log(`MongoDB Connected: ${conn.connection.host}`);
@@ -19,13 +19,12 @@ const connectDB = async () => {
     console.error("MongoDB connection failed:");
     console.error(error.message);
 
-    // optional: show hint for common mistakes
     if (error.message.includes("bad auth")) {
-      console.error("👉 Check your MongoDB username/password");
+      console.error("👉 Check your MongoDB Atlas username/password");
     }
 
     process.exit(1);
   }
 };
 
-export default connectDB;
+module.exports = connectDB;
