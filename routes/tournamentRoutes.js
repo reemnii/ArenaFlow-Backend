@@ -4,7 +4,7 @@ const { protect } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-router.route("/").get(tournamentController.getAll).post(tournamentController.create);
+router.route("/").get(tournamentController.getAll).post(protect, tournamentController.create);
 router
   .route("/:id")
   .get(tournamentController.getById)
