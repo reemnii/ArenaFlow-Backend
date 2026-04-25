@@ -1,10 +1,11 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
+import dotenv from "dotenv";
+
+dotenv.config({ path: "./config/.env" });
 
 const connectDB = async () => {
   try {
-    const mongoURI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/arenaflow";
-
-    await mongoose.connect(mongoURI);
+    await mongoose.connect(process.env.MONGO_URI);
     console.log("MongoDB connected");
   } catch (error) {
     console.error("MongoDB connection failed:", error.message);
@@ -12,4 +13,4 @@ const connectDB = async () => {
   }
 };
 
-module.exports = connectDB;
+export default connectDB;
