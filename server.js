@@ -5,7 +5,9 @@ const { notFound, errorHandler } = require("./middleware/errorMiddleware");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const allowedOrigins = (process.env.CLIENT_ORIGIN || "")
+const allowedOrigins = (
+  process.env.CLIENT_ORIGIN || "https://arena-flow-coral.vercel.app"
+)
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
