@@ -16,6 +16,7 @@ const errorHandler = (err, req, res, next) => {
   }
 
   const response = {
+    success: false,
     message: err.message || "Server error",
   };
 

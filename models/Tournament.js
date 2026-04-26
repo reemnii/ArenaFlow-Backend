@@ -37,6 +37,11 @@ const tournamentSchema = new mongoose.Schema(
       enum: ["open", "closed"],
       default: "open",
     },
+    registrationMode: {
+      type: String,
+      enum: ["open", "invite_only"],
+      default: "open",
+    },
     prize: {
       type: Number,
       default: 0,
@@ -107,6 +112,12 @@ const tournamentSchema = new mongoose.Schema(
       trim: true,
     },
     teams: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Team",
+      },
+    ],
+    invitedTeams: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Team",

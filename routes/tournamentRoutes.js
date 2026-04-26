@@ -8,6 +8,8 @@ router
   .route("/")
   .get(tournamentController.getAll)
   .post(protect, tournamentController.create);
+router.get("/:id/teams", tournamentController.getTeams);
+router.post("/:id/join", protect, tournamentController.join);
 router
   .route("/:id")
   .get(tournamentController.getById)

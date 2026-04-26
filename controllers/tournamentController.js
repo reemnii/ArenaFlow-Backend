@@ -1,10 +1,12 @@
 const Tournament = require("../models/Tournament");
+const Team = require("../models/Team");
 const mongoose = require("mongoose");
 
-const populateFields = ["teams", "createdBy"];
+const populateFields = ["teams", "invitedTeams", "createdBy"];
 const tournamentTypes = ["Indoor", "Beach", "Grass", "Snow"];
 const tournamentStatuses = ["draft", "published", "upcoming", "ongoing", "completed"];
 const registrationStatuses = ["open", "closed"];
+const registrationModes = ["open", "invite_only"];
 const visibilityOptions = ["Public", "Private"];
 
 const applyPopulate = (query) => {
@@ -63,6 +65,24 @@ const normalizeStatus = (status) => {
   }
 
   return status;
+};
+
+const normalizeRegistrationMode = (registrationMode) => {
+  if (!registrationMode) {
+    return undefined;
+  }
+
+  const normalized = String(registrationMode).trim().toLowerCase();
+
+  if (["invite-only", "invite_only", "invite only", "invited"].includes(normalized)) {
+    return "invite_only";
+  }
+
+  if (["open", "public"].includes(normalized)) {
+    return "open";
+  }
+
+  return normalized;
 };
 
 const parsePrize = (prize) => {
@@ -133,9 +153,20 @@ const normalizeTournamentPayload = (body, user) => {
 
   delete payload.refustrationstatus;
 
+  if (payload.invitedTeamIds && !payload.invitedTeams) {
+    payload.invitedTeams = payload.invitedTeamIds;
+  }
+
+  delete payload.invitedTeamIds;
+
   const status = normalizeStatus(payload.status);
   if (status) {
     payload.status = status;
+  }
+
+  const registrationMode = normalizeRegistrationMode(payload.registrationMode);
+  if (registrationMode) {
+    payload.registrationMode = registrationMode;
   }
 
   if (payload.prize !== undefined) {
@@ -159,6 +190,11 @@ const normalizeTournamentPayload = (body, user) => {
     payload.teams = teams;
   }
   delete payload.teamIds;
+
+  const invitedTeams = normalizeObjectIdList(payload.invitedTeams, errors);
+  if (invitedTeams) {
+    payload.invitedTeams = invitedTeams;
+  }
 
   if (user && user._id) {
     payload.createdBy = user._id;
@@ -211,6 +247,13 @@ const validateTournamentPayload = (payload, options = {}) => {
     !registrationStatuses.includes(payload.registrationStatus)
   ) {
     errors.push(`Registration status must be one of: ${registrationStatuses.join(", ")}.`);
+  }
+
+  if (
+    payload.registrationMode !== undefined &&
+    !registrationModes.includes(payload.registrationMode)
+  ) {
+    errors.push(`Registration mode must be one of: ${registrationModes.join(", ")}.`);
   }
 
   if (payload.visibility !== undefined && !visibilityOptions.includes(payload.visibility)) {
@@ -272,6 +315,23 @@ const validateTournamentPayload = (payload, options = {}) => {
 
   if (maxTeams !== undefined && teamCount > maxTeams) {
     errors.push("Max teams cannot be less than the number of assigned teams.");
+  }
+
+  const invitedTeamCount =
+    payload.invitedTeams !== undefined
+      ? payload.invitedTeams.length
+      : existingTournament && existingTournament.invitedTeams
+        ? existingTournament.invitedTeams.length
+        : 0;
+
+  if (
+    (payload.registrationMode === "invite_only" ||
+      (payload.registrationMode === undefined &&
+        existingTournament &&
+        existingTournament.registrationMode === "invite_only")) &&
+    invitedTeamCount === 0
+  ) {
+    errors.push("Invite-only tournaments must include at least one invited team.");
   }
 
   return errors;
@@ -417,10 +477,106 @@ const remove = async (req, res, next) => {
   }
 };
 
+const getTeams = async (req, res, next) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return next(createError("Invalid tournament id", 400));
+    }
+
+    const tournament = await Tournament.findById(req.params.id).populate("teams");
+
+    if (!tournament) {
+      return next(createError("Tournament not found", 404));
+    }
+
+    res.json(tournament.teams || []);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const join = async (req, res, next) => {
+  try {
+    const tournamentId = req.params.id;
+    const { teamId } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(tournamentId)) {
+      return next(createError("Invalid tournament id", 400));
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(teamId)) {
+      return next(createError("A valid teamId is required", 400));
+    }
+
+    const [tournament, team] = await Promise.all([
+      Tournament.findById(tournamentId),
+      Team.findById(teamId),
+    ]);
+
+    if (!tournament) {
+      return next(createError("Tournament not found", 404));
+    }
+
+    if (!team) {
+      return next(createError("Team not found", 404));
+    }
+
+    const canManageTeam =
+      req.user.role === "admin" || String(team.createdBy) === String(req.user._id);
+
+    if (!canManageTeam) {
+      return next(createError("Not authorized to register this team", 403));
+    }
+
+    if (tournament.registrationStatus !== "open") {
+      return next(createError("Tournament registration is closed", 400));
+    }
+
+    if (
+      tournament.registrationMode === "invite_only" &&
+      !tournament.invitedTeams.some(
+        (invitedTeamId) => String(invitedTeamId) === String(team._id)
+      )
+    ) {
+      return next(createError("This team is not invited to this tournament", 403));
+    }
+
+    if (["ongoing", "completed"].includes(tournament.status)) {
+      return next(createError("This tournament can no longer accept teams", 400));
+    }
+
+    const alreadyJoined = tournament.teams.some(
+      (existingTeamId) => String(existingTeamId) === String(team._id)
+    );
+
+    if (alreadyJoined) {
+      return next(createError("Team has already joined this tournament", 400));
+    }
+
+    if (tournament.teams.length >= tournament.maxTeams) {
+      return next(createError("Tournament is already full", 400));
+    }
+
+    tournament.teams.push(team._id);
+    await tournament.save();
+
+    const populatedTournament = await applyPopulate(Tournament.findById(tournament._id));
+
+    res.json({
+      message: "Team joined tournament successfully",
+      tournament: populatedTournament,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getAll,
   getById,
+  getTeams,
   create,
+  join,
   update,
   remove,
 };

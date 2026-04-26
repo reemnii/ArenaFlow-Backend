@@ -1,11 +1,11 @@
 const express = require("express");
+const userController = require("../controllers/userController");
+const { protect, authorize } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-router.get("/", (req, res) => {
-  res.json({
-    message: "User routes are ready",
-  });
-});
+router.get("/", protect, authorize("admin"), userController.getAll);
+router.get("/me", protect, userController.getMe);
+router.put("/me", protect, userController.updateMe);
 
 module.exports = router;

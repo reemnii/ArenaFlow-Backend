@@ -8,7 +8,7 @@ router.route("/").get(teamController.getAll).post(protect, teamController.create
 router
   .route("/:id")
   .get(teamController.getById)
-  .put(teamController.update)
-  .delete(teamController.remove);
+  .put(protect, teamController.update)
+  .delete(protect, teamController.remove);
 
 module.exports = router;

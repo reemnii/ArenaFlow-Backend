@@ -30,6 +30,49 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    fullName: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    teamName: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    position: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    jerseyNumber: {
+      type: Number,
+      min: 0,
+      max: 99,
+    },
+    gender: {
+      type: String,
+      enum: ["male", "female", ""],
+      default: "",
+    },
+    phone: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    age: {
+      type: Number,
+      min: 0,
+    },
+    yearsExperience: {
+      type: Number,
+      min: 0,
+    },
+    specialization: {
+      type: String,
+      default: "",
+      trim: true,
+    },
   },
   { timestamps: true }
 );
