@@ -1,18 +1,17 @@
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 
-// Load environment variables
 dotenv.config({ path: "./config/.env" });
 
 const connectDB = async () => {
   try {
-    const mongoURI =
-      process.env.MONGO_URI ||
-      "mongodb://127.0.0.1:27017/arenaflow";
+    const mongoURI = process.env.MONGO_URI;
 
-    const conn = await mongoose.connect(mongoURI, {
-      dbName: "arenaflow",
-    });
+    if (!mongoURI) {
+      throw new Error("MONGO_URI is missing");
+    }
+
+    const conn = await mongoose.connect(mongoURI);
 
     console.log(`MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
@@ -20,7 +19,7 @@ const connectDB = async () => {
     console.error(error.message);
 
     if (error.message.includes("bad auth")) {
-      console.error("👉 Check your MongoDB Atlas username/password");
+      console.error("Check MongoDB Atlas username/password in Render MONGO_URI");
     }
 
     process.exit(1);
